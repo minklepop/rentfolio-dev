@@ -1,0 +1,24 @@
+# Next.js
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Database & uploads (user data — back up separately)
+prisma/dev.db
+prisma/dev.db-journal
+uploads/
+
+# Environment (contains secrets)
+.env
+.env.local
+.env*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agents
+AGENTS.md
+CLAUDE.md

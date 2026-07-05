@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         String   @default("TENANT") // LANDLORD | TENANT
+  totpSecret   String? // base32 secret; set once MFA enrollment is confirmed
+  totpEnabled  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  leases              LeaseTenant[]
+  maintenanceRequests MaintenanceRequest[]
+  comments            MaintenanceComment[]
+  messages            Message[]
+}
+
+model Property {
+  id        String   @id @default(cuid())
+  name      String
+  address1  String
+  address2  String?
+  city      String
+  state     String
+  zip       String
+  type      String   @default("SINGLE_FAMILY") // SINGLE_FAMILY | MULTI_FAMILY | APARTMENT | CONDO | TOWNHOUSE | OTHER
+  notes     String?
+  createdAt DateTime @default(now())
+
+  units     Unit[]
+  expenses  Expense[]
+  documents Document[]
+}
+
+model Unit {
+  id              String   @id @default(cuid())
+  propertyId      String
+  property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  label           String   @default("Main") // "Main", "Unit A", "#2", ...
+  beds            Int      @default(0)
+  baths           Float    @default(1)
+  sqft            Int?
+  marketRentCents Int      @default(0)
+
+  leases              Lease[]
+  listings            Listing[]
+  maintenanceRequests MaintenanceRequest[]
+  documents           Document[]
+}
+
+model Lease {
+  id                String    @id @default(cuid())
+  unitId            String
+  unit              Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  startDate         DateTime
+  endDate           DateTime?
+  rentCents         Int
+  depositCents      Int       @default(0)
+  rentDueDay        Int       @default(1) // day of month rent is due
+  graceDays         Int       @default(5)
+  lateFeeCents      Int       @default(0) // 0 = no automatic late fee
+  status            String    @default("ACTIVE") // ACTIVE | ENDED
+  notes             String?
+  chargesThrough    DateTime? // last month for which rent charges were auto-generated
+  createdAt         DateTime  @default(now())
+
+  tenants   LeaseTenant[]
+  charges   Charge[]
+  payments  Payment[]
+  documents Document[]
+  messages  Message[]
+}
+
+model LeaseTenant {
+  leaseId String
+  lease   Lease  @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([leaseId, userId])
+}
+
+model Charge {
+  id             String   @id @default(cuid())
+  leaseId        String
+  lease          Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  type           String   @default("RENT") // RENT | DEPOSIT | LATE_FEE | UTILITY | OTHER
+  description    String?
+  amountCents    Int
+  dueDate        DateTime
+  linkedChargeId String?  @unique // for LATE_FEE: the rent charge it was applied to
+  createdAt      DateTime @default(now())
+
+  payments Payment[]
+}
+
+model Payment {
+  id          String    @id @default(cuid())
+  leaseId     String
+  lease       Lease     @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  chargeId    String?
+  charge      Charge?   @relation(fields: [chargeId], references: [id], onDelete: SetNull)
+  amountCents Int
+  paidDate    DateTime
+  method      String    @default("OTHER") // CASH | CHECK | ZELLE | VENMO | BANK_TRANSFER | MONEY_ORDER | OTHER
+  note        String?
+  createdAt   DateTime  @default(now())
+}
+
+model MaintenanceRequest {
+  id          String   @id @default(cuid())
+  unitId      String
+  unit        Unit     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  title       String
+  description String
+  priority    String   @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  status      String   @default("OPEN") // OPEN | IN_PROGRESS | COMPLETED | CANCELED
+  costCents   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  comments MaintenanceComment[]
+}
+
+model MaintenanceComment {
+  id        String             @id @default(cuid())
+  requestId String
+  request   MaintenanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body      String
+  createdAt DateTime           @default(now())
+}
+
+model Listing {
+  id            String    @id @default(cuid())
+  unitId        String
+  unit          Unit      @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  slug          String    @unique
+  title         String
+  description   String
+  rentCents     Int
+  depositCents  Int       @default(0)
+  availableDate DateTime?
+  amenities     String? // comma-separated
+  status        String    @default("DRAFT") // DRAFT | PUBLISHED | CLOSED
+  createdAt     DateTime  @default(now())
+
+  photos       ListingPhoto[]
+  applications Application[]
+  leads        Lead[]
+}
+
+model ListingPhoto {
+  id        String   @id @default(cuid())
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  filename  String // stored under UPLOAD_DIR
+  createdAt DateTime @default(now())
+}
+
+model Application {
+  id                 String    @id @default(cuid())
+  listingId          String
+  listing            Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  fullName           String
+  email              String
+  phone              String
+  currentAddress     String?
+  employer           String?
+  jobTitle           String?
+  monthlyIncomeCents Int?
+  moveInDate         DateTime?
+  occupants          Int       @default(1)
+  pets               String?
+  vehicles           String?
+  refName            String?
+  refPhone           String?
+  refRelation        String?
+  extraInfo          String?
+  status             String    @default("NEW") // NEW | REVIEWING | APPROVED | DENIED
+  internalNotes      String?
+  createdAt          DateTime  @default(now())
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  date        DateTime
+  amountCents Int
+  category    String   @default("OTHER") // IRS Schedule E categories, see lib/constants
+  vendor      String?
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model Document {
+  id         String    @id @default(cuid())
+  propertyId String?
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  leaseId    String?
+  lease      Lease?    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  unitId     String?
+  unit       Unit?     @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  name       String
+  filename   String // stored under UPLOAD_DIR
+  createdAt  DateTime  @default(now())
+
+  // Self-built e-signature: typed name + timestamp + IP stands in for a signature.
+  requiresSignature Boolean   @default(false)
+  signedAt          DateTime?
+  signedByName      String?
+  signedById        String?
+  signedIp          String?
+}
+
+model Lead {
+  id          String    @id @default(cuid())
+  listingId   String?
+  listing     Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  name        String
+  phone       String?
+  email       String?
+  source      String? // e.g. "Zillow", "Craigslist", "Referral", "Walk-in"
+  message     String?
+  status      String    @default("NEW") // NEW | CONTACTED | APPLIED | LOST
+  internalNotes String?
+  createdAt   DateTime  @default(now())
+}
+
+model Resource {
+  id        String   @id @default(cuid())
+  label     String // e.g. "Indiana court case lookup"
+  url       String
+  category  String   @default("OTHER") // EVICTION_COURT | SCREENING | LISTING_SITE | OTHER
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  leaseId   String
+  lease     Lease    @relation(fields: [leaseId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  body      String
+  createdAt DateTime @default(now())
+}
