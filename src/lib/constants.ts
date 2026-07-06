@@ -32,6 +32,17 @@ export const PRIORITIES = [
   ["URGENT", "Urgent"],
 ] as const;
 
+export const MAINTENANCE_CATEGORIES = [
+  ["PLUMBING", "Plumbing"],
+  ["ELECTRICAL", "Electrical"],
+  ["HVAC", "HVAC / Heating / Cooling"],
+  ["APPLIANCE", "Appliance"],
+  ["STRUCTURAL", "Structural / Roof"],
+  ["PEST_CONTROL", "Pest control"],
+  ["GENERAL", "General / Cleaning"],
+  ["OTHER", "Other"],
+] as const;
+
 export const MAINTENANCE_STATUSES = [
   ["OPEN", "Open"],
   ["IN_PROGRESS", "In progress"],
