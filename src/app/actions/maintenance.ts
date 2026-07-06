@@ -14,6 +14,7 @@ export async function createRequest(formData: FormData) {
       createdById: session.userId,
       title: String(formData.get("title") ?? "").trim(),
       description: String(formData.get("description") ?? "").trim(),
+      category: String(formData.get("category") ?? "OTHER"),
       priority: String(formData.get("priority") ?? "NORMAL"),
     },
   });
@@ -35,6 +36,7 @@ export async function tenantCreateRequest(formData: FormData) {
       createdById: session.userId,
       title: String(formData.get("title") ?? "").trim(),
       description: String(formData.get("description") ?? "").trim(),
+      category: String(formData.get("category") ?? "OTHER"),
       priority: String(formData.get("priority") ?? "NORMAL"),
     },
   });
@@ -49,6 +51,7 @@ export async function updateRequest(formData: FormData) {
     where: { id },
     data: {
       status: String(formData.get("status") ?? "OPEN"),
+      category: String(formData.get("category") ?? "OTHER"),
       priority: String(formData.get("priority") ?? "NORMAL"),
       costCents: formData.get("cost") ? parseMoney(formData.get("cost")) : null,
     },

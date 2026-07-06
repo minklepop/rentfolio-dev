@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { fmtMoney } from "@/lib/money";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { unitName } from "@/lib/names";
-import { PRIORITIES, MAINTENANCE_STATUSES } from "@/lib/constants";
+import { PRIORITIES, MAINTENANCE_STATUSES, MAINTENANCE_CATEGORIES, labelFor } from "@/lib/constants";
 import { updateRequest, deleteRequest, addComment } from "@/app/actions/maintenance";
 import DeleteButton from "@/components/DeleteButton";
 import {
@@ -51,6 +51,9 @@ export default async function MaintenanceDetailPage({
 
       <div className="space-y-6">
         <Card title="Details">
+          <p className="mb-2 text-xs text-slate-500">
+            Category: <span className="font-medium text-slate-700">{labelFor(MAINTENANCE_CATEGORIES, request.category)}</span>
+          </p>
           <p className="whitespace-pre-wrap text-sm text-slate-700">{request.description}</p>
           {request.costCents != null && (
             <p className="mt-3 text-sm text-slate-500">
@@ -68,6 +71,13 @@ export default async function MaintenanceDetailPage({
                   <option key={v} value={v}>
                     {l}
                   </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Category">
+              <select name="category" defaultValue={request.category} className={inputCls}>
+                {MAINTENANCE_CATEGORIES.map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
                 ))}
               </select>
             </Field>

@@ -3,16 +3,13 @@ import { requireTenant } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { unitName } from "@/lib/names";
-import { PRIORITIES } from "@/lib/constants";
 import { tenantCreateRequest } from "@/app/actions/maintenance";
+import MaintenanceForm from "@/components/MaintenanceForm";
 import {
   PageHeader,
   Card,
-  Field,
   EmptyState,
   StatusBadge,
-  inputCls,
-  btnPrimary,
 } from "@/components/ui";
 
 export default async function TenantMaintenancePage() {
@@ -40,41 +37,11 @@ export default async function TenantMaintenancePage() {
       <div className="space-y-6">
         {units.length > 0 && (
           <Card title="Report a new issue">
-            <form action={tenantCreateRequest} className="space-y-4">
-              <Field label="Unit">
-                <select name="unitId" required className={inputCls}>
-                  {units.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {unitName(u)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="What's the issue?">
-                <input name="title" required className={inputCls} placeholder="Leaking kitchen faucet" />
-              </Field>
-              <Field label="Details">
-                <textarea
-                  name="description"
-                  rows={4}
-                  required
-                  className={inputCls}
-                  placeholder="When did it start? Where exactly? Anything you've tried?"
-                />
-              </Field>
-              <Field label="How urgent is it?">
-                <select name="priority" defaultValue="NORMAL" className={inputCls}>
-                  {PRIORITIES.map(([v, l]) => (
-                    <option key={v} value={v}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <button type="submit" className={btnPrimary}>
-                Submit request
-              </button>
-            </form>
+            <MaintenanceForm
+              units={units}
+              action={tenantCreateRequest}
+              submitLabel="Submit request"
+            />
           </Card>
         )}
 
