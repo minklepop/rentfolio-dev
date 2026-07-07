@@ -11,6 +11,7 @@ import {
   deleteApplication,
 } from "@/app/actions/applications";
 import DeleteButton from "@/components/DeleteButton";
+import ApplicationScreening from "@/components/ApplicationScreening";
 import {
   PageHeader,
   Card,
@@ -117,6 +118,10 @@ export default async function ApplicationDetailPage({
               <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{app.extraInfo}</p>
             </div>
           )}
+        </Card>
+
+        <Card title="AI screening">
+          <ApplicationScreening applicationId={app.id} existingAssessment={app.aiScreening} />
         </Card>
 
         <Card title="Internal notes (applicant never sees these)">
