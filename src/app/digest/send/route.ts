@@ -1,5 +1,6 @@
-import { buildWeeklyDigest, digestToText, digestToHtml } from "@/lib/digest";
+import { buildWeeklyDigest, buildAiSummary, digestToText, digestToHtml } from "@/lib/digest";
 import { sendEmail } from "@/lib/email";
+import { db } from "@/lib/db";
 
 /**
  * Cron-friendly endpoint: hit this from a scheduled task (cron, Windows Task
@@ -18,8 +19,10 @@ export async function GET(req: Request) {
   }
 
   const data = await buildWeeklyDigest();
+  const landlord = await db.user.findFirst({ where: { role: "LANDLORD" }, select: { aiContextDigest: true } });
+  const aiSummary = await buildAiSummary(data, landlord?.aiContextDigest);
   try {
-    await sendEmail(to, "Rentfolio: this week's follow-ups", digestToText(data), digestToHtml(data));
+    await sendEmail(to, "Rentfolio: this week's follow-ups", digestToText(data, aiSummary), digestToHtml(data, aiSummary));
     return new Response("Digest sent.");
   } catch (e) {
     return new Response((e as Error).message, { status: 500 });

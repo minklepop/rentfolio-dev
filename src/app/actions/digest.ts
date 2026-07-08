@@ -2,20 +2,23 @@
 
 import { redirect } from "next/navigation";
 import { requireLandlord } from "@/lib/auth";
-import { buildWeeklyDigest, digestToText, digestToHtml } from "@/lib/digest";
+import { buildWeeklyDigest, buildAiSummary, digestToText, digestToHtml } from "@/lib/digest";
 import { sendEmail } from "@/lib/email";
+import { db } from "@/lib/db";
 
 export async function sendDigestNow() {
   const session = await requireLandlord();
   const data = await buildWeeklyDigest();
+  const user = await db.user.findUnique({ where: { id: session.userId }, select: { aiContextDigest: true } });
+  const aiSummary = await buildAiSummary(data, user?.aiContextDigest);
 
   let errorMessage: string | null = null;
   try {
     await sendEmail(
       process.env.DIGEST_TO || session.email,
       "Rentfolio: this week's follow-ups",
-      digestToText(data),
-      digestToHtml(data)
+      digestToText(data, aiSummary),
+      digestToHtml(data, aiSummary)
     );
   } catch (e) {
     errorMessage = (e as Error).message;
