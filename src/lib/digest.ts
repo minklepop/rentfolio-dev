@@ -3,6 +3,7 @@ import { fmtMoney } from "./money";
 import { fmtDate, todayUTC } from "./format";
 import { paidCents } from "./rent";
 import { unitName, tenantNames } from "./names";
+import { geminiText } from "./gemini";
 
 export type DigestData = {
   overdue: { unitLabel: string; tenants: string; amount: string; daysLate: number }[];
@@ -56,8 +57,34 @@ export async function buildWeeklyDigest(): Promise<DigestData> {
   return { overdue, endingSoon, openMaintenance };
 }
 
-export function digestToText(data: DigestData): string {
+/** Call Gemini to write a short plain-English summary of the digest data. Returns empty string on failure so callers degrade gracefully. */
+export async function buildAiSummary(data: DigestData, aiContextDigest?: string | null): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) return "";
+  const lines: string[] = [];
+  if (data.overdue.length)
+    lines.push(`Overdue rent: ${data.overdue.map((o) => `${o.unitLabel} owes ${o.amount} (${o.daysLate}d late)`).join("; ")}.`);
+  if (data.endingSoon.length)
+    lines.push(`Leases ending soon: ${data.endingSoon.map((e) => `${e.unitLabel} ends ${e.endDate}`).join("; ")}.`);
+  if (data.openMaintenance.length)
+    lines.push(`Open maintenance: ${data.openMaintenance.map((m) => `[${m.priority}] ${m.title} at ${m.unitLabel}`).join("; ")}.`);
+  if (!lines.length) return "Everything is on track, no overdue rent, no expiring leases, and no open maintenance issues right now.";
+
+  const extraContext = aiContextDigest ? `\nLandlord context: ${aiContextDigest}` : "";
+  const prompt = `You are a property-management assistant. Write a 2-3 sentence plain-English summary for a landlord's weekly digest. Be direct and actionable. Do not use markdown or bullet points.${extraContext}
+
+Data:
+${lines.join("\n")}`;
+
+  try {
+    return await geminiText(prompt, 200);
+  } catch {
+    return "";
+  }
+}
+
+export function digestToText(data: DigestData, aiSummary?: string): string {
   const lines: string[] = ["Rentfolio weekly follow-up digest", ""];
+  if (aiSummary) { lines.push(aiSummary, ""); }
   lines.push(`Overdue rent (${data.overdue.length}):`);
   lines.push(
     ...(data.overdue.length
@@ -79,7 +106,7 @@ export function digestToText(data: DigestData): string {
   return lines.join("\n");
 }
 
-export function digestToHtml(data: DigestData): string {
+export function digestToHtml(data: DigestData, aiSummary?: string): string {
   const section = (title: string, rows: string[]) => `
     <h3 style="margin:16px 0 4px;font-size:14px;">${title}</h3>
     ${rows.length ? `<ul style="margin:0;padding-left:20px;font-size:13px;">${rows.map((r) => `<li>${r}</li>`).join("")}</ul>` : `<p style="margin:0;font-size:13px;color:#64748b;">None.</p>`}
@@ -87,6 +114,7 @@ export function digestToHtml(data: DigestData): string {
   return `
     <div style="font-family:sans-serif;color:#0f172a;max-width:480px;">
       <h2 style="font-size:18px;">Rentfolio weekly follow-up digest</h2>
+      ${aiSummary ? `<p style="margin:0 0 12px;font-size:14px;background:#eef2ff;border-radius:6px;padding:12px;">${aiSummary}</p>` : ""}
       ${section(
         `Overdue rent (${data.overdue.length})`,
         data.overdue.map((o) => `${o.unitLabel} (${o.tenants}): <b>${o.amount}</b> owed, ${o.daysLate} days late`)
