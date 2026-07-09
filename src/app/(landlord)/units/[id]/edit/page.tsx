@@ -7,6 +7,7 @@ import { updateUnit, deleteUnit } from "@/app/actions/properties";
 import { uploadDocument, deleteDocument } from "@/app/actions/documents";
 import DeleteButton from "@/components/DeleteButton";
 import { PageHeader, Card, Field, EmptyState, inputCls, btnPrimary, btnSecondary } from "@/components/ui";
+import MarketRentSuggestion from "@/components/MarketRentSuggestion";
 
 export default async function EditUnitPage({
   params,
@@ -62,6 +63,13 @@ export default async function EditUnitPage({
             Save changes
           </button>
         </form>
+      </Card>
+
+      <Card title="AI rent suggestion">
+        <p className="mb-3 text-xs text-slate-500">
+          Get an AI estimate of what this unit could rent for based on its specs.
+        </p>
+        <MarketRentSuggestion unitId={unit.id} />
       </Card>
 
       <Card title="Unit documents">
