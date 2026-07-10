@@ -20,6 +20,8 @@ import { recordPayment, recordLeasePayment, deletePayment } from "@/app/actions/
 import { uploadDocument, deleteDocument } from "@/app/actions/documents";
 import { sendMessage, deleteMessage } from "@/app/actions/messages";
 import DeleteButton from "@/components/DeleteButton";
+import LeaseRenewal from "@/components/LeaseRenewal";
+import PaymentLinkButton from "@/components/PaymentLinkButton";
 import {
   PageHeader,
   Card,
@@ -64,6 +66,11 @@ export default async function LeasePage({
   const balance = lease.charges.reduce((sum, c) => sum + c.amountCents - paidCents(c), 0);
   const outstandingCount = lease.charges.filter((c) => c.amountCents - paidCents(c) > 0).length;
   const returnTo = `/leases/${lease.id}`;
+  const today = todayUTC();
+  const daysUntilEnd = lease.endDate
+    ? Math.floor((lease.endDate.getTime() - today.getTime()) / 86_400_000)
+    : null;
+  const showRenewal = daysUntilEnd !== null && daysUntilEnd <= 60;
 
   return (
     <div>
@@ -179,7 +186,7 @@ export default async function LeasePage({
           {lease.charges.length === 0 ? (
             <EmptyState message="No charges yet. Rent charges generate automatically each month." />
           ) : (
-            <Table headers={["Due", "Type", "Description", "Amount", "Paid", "Status", ""]}>
+            <Table headers={["Due", "Type", "Description", "Amount", "Paid", "Status", "Pay", ""]}>
               {lease.charges.map((c) => {
                 const paid = paidCents(c);
                 const status = chargeStatus(c);
@@ -193,6 +200,11 @@ export default async function LeasePage({
                     <td className={tdCls}>{fmtMoney(paid)}</td>
                     <td className={tdCls}>
                       <StatusBadge status={status} />
+                    </td>
+                    <td className={tdCls}>
+                      {status !== "PAID" && (
+                        <PaymentLinkButton chargeId={c.id} existingUrl={c.squarePaymentLinkUrl} />
+                      )}
                     </td>
                     <td className={`${tdCls} space-x-2 whitespace-nowrap`}>
                       {status !== "PAID" && (
@@ -411,6 +423,15 @@ export default async function LeasePage({
         </Card>
 
         <div className="grid gap-6 xl:grid-cols-2">
+          {showRenewal && (
+            <Card title="Lease renewal">
+              <p className="mb-3 text-xs text-slate-500">
+                This lease expires in {daysUntilEnd} day{daysUntilEnd === 1 ? "" : "s"}. Get an AI recommendation on renewal.
+              </p>
+              <LeaseRenewal leaseId={lease.id} />
+            </Card>
+          )}
+
           <Card title="Lease terms">
             <form action={updateLease} className="space-y-4">
               <input type="hidden" name="id" value={lease.id} />
