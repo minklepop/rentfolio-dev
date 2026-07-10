@@ -16,6 +16,11 @@ model User {
   role         String   @default("TENANT") // LANDLORD | TENANT
   totpSecret   String? // base32 secret; set once MFA enrollment is confirmed
   totpEnabled  Boolean  @default(false)
+  aiContextMaintenance  String?
+  aiContextScreening    String?
+  aiContextDigest       String?
+  aiContextRentSuggestion String?
+  aiContextRenewal      String?
   createdAt    DateTime @default(now())
 
   leases              LeaseTenant[]
@@ -97,8 +102,10 @@ model Charge {
   description    String?
   amountCents    Int
   dueDate        DateTime
-  linkedChargeId String?  @unique // for LATE_FEE: the rent charge it was applied to
-  createdAt      DateTime @default(now())
+  linkedChargeId       String?  @unique // for LATE_FEE: the rent charge it was applied to
+  squarePaymentLinkId  String?
+  squarePaymentLinkUrl String?
+  createdAt            DateTime @default(now())
 
   payments Payment[]
 }
@@ -124,6 +131,7 @@ model MaintenanceRequest {
   createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   title       String
   description String
+  category    String   @default("OTHER") // PLUMBING | ELECTRICAL | HVAC | APPLIANCE | STRUCTURAL | PEST_CONTROL | GENERAL | OTHER
   priority    String   @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
   status      String   @default("OPEN") // OPEN | IN_PROGRESS | COMPLETED | CANCELED
   costCents   Int?
@@ -191,6 +199,7 @@ model Application {
   extraInfo          String?
   status             String    @default("NEW") // NEW | REVIEWING | APPROVED | DENIED
   internalNotes      String?
+  aiScreening        String?   // Gemini-generated screening assessment
   createdAt          DateTime  @default(now())
 }
 
