@@ -2,6 +2,7 @@ import { requireLandlord } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { changePassword } from "@/app/actions/auth";
 import { sendDigestNow } from "@/app/actions/digest";
+import { saveAiContexts } from "@/app/actions/settings";
 import MfaSettingsCard from "@/components/MfaSettingsCard";
 import { PageHeader, Card, Field, inputCls, btnPrimary, btnSecondary } from "@/components/ui";
 
@@ -17,6 +18,7 @@ export default async function SettingsPage({
     mfaWrongPassword?: string;
     digestSent?: string;
     digestError?: string;
+    aiSaved?: string;
   }>;
 }) {
   const session = await requireLandlord();
@@ -29,6 +31,7 @@ export default async function SettingsPage({
     mfaWrongPassword,
     digestSent,
     digestError,
+    aiSaved,
   } = await searchParams;
   const user = await db.user.findUniqueOrThrow({ where: { id: session.userId } });
 
@@ -107,6 +110,40 @@ export default async function SettingsPage({
           <code>/digest/send?token=YOUR_DIGEST_CRON_SECRET</code> (cron, Windows Task Scheduler,
           etc.), see README for setup.
         </p>
+      </Card>
+
+      <Card title="AI preferences">
+        <p className="mb-4 text-sm text-slate-600">
+          Add context that gets included in each AI feature&apos;s prompt. Use this to reflect your
+          situation, tenant demographics, local market, what you care about, etc.
+        </p>
+        {aiSaved && (
+          <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            AI preferences saved.
+          </p>
+        )}
+        <form action={saveAiContexts} className="space-y-4">
+          {(
+            [
+              ["aiContextMaintenance",    "Maintenance triage",           user.aiContextMaintenance,    "e.g. The property is older, plumbing issues are common and not always urgent."],
+              ["aiContextScreening",      "Application screening",        user.aiContextScreening,      "e.g. Tenants in this area often have lower credit scores; focus on employment stability."],
+              ["aiContextDigest",         "Weekly digest summary",        user.aiContextDigest,         "e.g. I manage 15 units solo, flag only the most time-sensitive items."],
+              ["aiContextRentSuggestion", "Market rent suggestion",       user.aiContextRentSuggestion, "e.g. This is a working-class neighbourhood; rents are below city average."],
+              ["aiContextRenewal",        "Lease renewal recommendation", user.aiContextRenewal,        "e.g. Late payments are acceptable given the tenant demographic; prioritise occupancy."],
+            ] as [string, string, string | null, string][]
+          ).map(([name, label, value, placeholder]) => (
+            <Field key={name} label={label}>
+              <textarea
+                name={name}
+                rows={2}
+                defaultValue={value ?? ""}
+                placeholder={placeholder}
+                className={inputCls}
+              />
+            </Field>
+          ))}
+          <button type="submit" className={btnPrimary}>Save AI preferences</button>
+        </form>
       </Card>
 
       <p className="text-xs text-slate-500">

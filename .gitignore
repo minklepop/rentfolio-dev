@@ -5,7 +5,7 @@ out/
 # Dependencies
 node_modules/
 
-# Database & uploads (user data — back up separately)
+# Database & uploads (user data, back up separately)
 prisma/dev.db
 prisma/dev.db-journal
 uploads/
