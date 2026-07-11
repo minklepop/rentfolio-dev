@@ -6,6 +6,7 @@ import { fmtDate } from "@/lib/format";
 import { unitName } from "@/lib/names";
 import { CHARGE_TYPES, PAYMENT_METHODS, labelFor } from "@/lib/constants";
 import { signDocument } from "@/app/actions/documents";
+import TenantPayForm from "@/components/TenantPayForm";
 import { Card, Field, PageHeader, StatusBadge, EmptyState, Table, tdCls, inputCls, btnPrimary } from "@/components/ui";
 
 export default async function TenantHomePage({
@@ -112,10 +113,14 @@ export default async function TenantHomePage({
                   </div>
                 </div>
                 {balance > 0 && (
-                  <p className="mt-3 rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-800">
-                    To pay, use the payment method you've arranged with your landlord (Zelle,
-                    check, etc.). Payments show up here once your landlord records them.
-                  </p>
+                  process.env.NEXT_PUBLIC_SQUARE_ENABLED === "true" ? (
+                    <TenantPayForm leaseId={lease.id} balanceCents={balance} />
+                  ) : (
+                    <p className="mt-3 rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-800">
+                      To pay, use the payment method you've arranged with your landlord (Zelle,
+                      check, etc.). Payments show up here once your landlord records them.
+                    </p>
+                  )
                 )}
               </div>
 
@@ -125,16 +130,16 @@ export default async function TenantHomePage({
                 ) : (
                   <Table headers={["Due", "Type", "Description", "Amount", "Paid", "Status"]}>
                     {lease.charges.slice(0, 12).map((c) => (
-                      <tr key={c.id}>
-                        <td className={tdCls}>{fmtDate(c.dueDate)}</td>
-                        <td className={tdCls}>{labelFor(CHARGE_TYPES, c.type)}</td>
-                        <td className={tdCls}>{c.description ?? ","}</td>
-                        <td className={tdCls}>{fmtMoney(c.amountCents)}</td>
-                        <td className={tdCls}>{fmtMoney(paidCents(c))}</td>
-                        <td className={tdCls}>
-                          <StatusBadge status={chargeStatus(c)} />
-                        </td>
-                      </tr>
+                        <tr key={c.id}>
+                          <td className={tdCls}>{fmtDate(c.dueDate)}</td>
+                          <td className={tdCls}>{labelFor(CHARGE_TYPES, c.type)}</td>
+                          <td className={tdCls}>{c.description ?? ","}</td>
+                          <td className={tdCls}>{fmtMoney(c.amountCents)}</td>
+                          <td className={tdCls}>{fmtMoney(paidCents(c))}</td>
+                          <td className={tdCls}>
+                            <StatusBadge status={chargeStatus(c)} />
+                          </td>
+                        </tr>
                     ))}
                   </Table>
                 )}
