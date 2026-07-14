@@ -27,6 +27,7 @@ model User {
   maintenanceRequests MaintenanceRequest[]
   comments            MaintenanceComment[]
   messages            Message[]
+  aiDecisions         AiDecision[]
 }
 
 model Property {
@@ -266,4 +267,24 @@ model Message {
   author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
   body      String
   createdAt DateTime @default(now())
+}
+
+model AiDecision {
+  id            String   @id @default(cuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  feature       String   // MAINTENANCE | SCREENING | DIGEST | RENT_SUGGESTION | RENEWAL
+  entityType    String?
+  entityId      String?
+  inputJson     String
+  outputText    String
+  model         String
+  accepted      Boolean?
+  overrideValue String?
+  feedbackNote  String?
+  createdAt     DateTime @default(now())
+  reviewedAt    DateTime?
+
+  @@index([feature, createdAt])
+  @@index([entityType, entityId])
 }
