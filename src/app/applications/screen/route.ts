@@ -1,9 +1,10 @@
 import { requireLandlord } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { fmtMoney } from "@/lib/money";
+import { logAiDecision } from "@/lib/aiDecisions";
 
 export async function POST(req: Request) {
-  await requireLandlord();
+  const session = await requireLandlord();
   if (!process.env.GEMINI_API_KEY) return Response.json({ error: "No API key" }, { status: 500 });
 
   const { applicationId } = await req.json().catch(() => ({}));
@@ -61,5 +62,15 @@ Additional info: ${app.extraInfo ?? "none"}${extraContext}`;
     data: { aiScreening: assessment },
   });
 
-  return Response.json({ assessment });
+  const decision = await logAiDecision({
+    userId: session.userId,
+    feature: "SCREENING",
+    entityType: "Application",
+    entityId: applicationId,
+    input: { applicationId, incomeRatio, employer: app.employer, occupants: app.occupants },
+    output: assessment,
+    model,
+  });
+
+  return Response.json({ assessment, decisionId: decision.id });
 }

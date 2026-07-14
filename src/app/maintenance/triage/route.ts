@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logAiDecision } from "@/lib/aiDecisions";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -61,7 +62,14 @@ Keep "reason" to one short sentence.${extraContext}`
 
   try {
     const parsed = JSON.parse(rawText);
-    return Response.json(parsed);
+    const decision = await logAiDecision({
+      userId: session.userId,
+      feature: "MAINTENANCE",
+      input: { title, description },
+      output: parsed,
+      model,
+    });
+    return Response.json({ ...parsed, decisionId: decision.id });
   } catch {
     console.error("[triage] JSON.parse failed:", rawText);
     return Response.json({ error: "Could not parse AI response" }, { status: 500 });
