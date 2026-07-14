@@ -4,6 +4,7 @@ import { fmtDate, todayUTC } from "./format";
 import { paidCents } from "./rent";
 import { unitName, tenantNames } from "./names";
 import { geminiText } from "./gemini";
+import { logAiDecision } from "./aiDecisions";
 
 export type DigestData = {
   overdue: { unitLabel: string; tenants: string; amount: string; daysLate: number }[];
@@ -58,7 +59,7 @@ export async function buildWeeklyDigest(): Promise<DigestData> {
 }
 
 /** Call Gemini to write a short plain-English summary of the digest data. Returns empty string on failure so callers degrade gracefully. */
-export async function buildAiSummary(data: DigestData, aiContextDigest?: string | null): Promise<string> {
+export async function buildAiSummary(data: DigestData, aiContextDigest?: string | null, userId?: string | null): Promise<string> {
   if (!process.env.GEMINI_API_KEY) return "";
   const lines: string[] = [];
   if (data.overdue.length)
@@ -76,7 +77,9 @@ Data:
 ${lines.join("\n")}`;
 
   try {
-    return await geminiText(prompt, 200);
+    const summary = await geminiText(prompt, 200);
+    await logAiDecision({ userId, feature: "DIGEST", input: data, output: summary });
+    return summary;
   } catch {
     return "";
   }

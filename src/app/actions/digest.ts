@@ -10,7 +10,7 @@ export async function sendDigestNow() {
   const session = await requireLandlord();
   const data = await buildWeeklyDigest();
   const user = await db.user.findUnique({ where: { id: session.userId }, select: { aiContextDigest: true } });
-  const aiSummary = await buildAiSummary(data, user?.aiContextDigest);
+  const aiSummary = await buildAiSummary(data, user?.aiContextDigest, session.userId);
 
   let errorMessage: string | null = null;
   try {

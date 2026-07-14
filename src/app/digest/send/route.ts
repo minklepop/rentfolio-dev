@@ -19,8 +19,8 @@ export async function GET(req: Request) {
   }
 
   const data = await buildWeeklyDigest();
-  const landlord = await db.user.findFirst({ where: { role: "LANDLORD" }, select: { aiContextDigest: true } });
-  const aiSummary = await buildAiSummary(data, landlord?.aiContextDigest);
+  const landlord = await db.user.findFirst({ where: { role: "LANDLORD" }, select: { id: true, aiContextDigest: true } });
+  const aiSummary = await buildAiSummary(data, landlord?.aiContextDigest, landlord?.id);
   try {
     await sendEmail(to, "Rentfolio: this week's follow-ups", digestToText(data, aiSummary), digestToHtml(data, aiSummary));
     return new Response("Digest sent.");
