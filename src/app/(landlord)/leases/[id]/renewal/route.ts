@@ -5,9 +5,10 @@ import { fmtMoney } from "@/lib/money";
 import { fmtDate, todayUTC } from "@/lib/format";
 import { unitName, tenantNames } from "@/lib/names";
 import { paidCents } from "@/lib/rent";
+import { logAiDecision } from "@/lib/aiDecisions";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  await requireLandlord();
+  const session = await requireLandlord();
   if (!process.env.GEMINI_API_KEY) return Response.json({ error: "No API key" }, { status: 500 });
 
   const { id } = await params;
@@ -47,7 +48,15 @@ Unit market rent: ${lease.unit.marketRentCents ? fmtMoney(lease.unit.marketRentC
 
   try {
     const recommendation = await geminiText(prompt, 300);
-    return Response.json({ recommendation });
+    const decision = await logAiDecision({
+      userId: session.userId,
+      feature: "RENEWAL",
+      entityType: "Lease",
+      entityId: id,
+      input: { daysLeft, rentCents: lease.rentCents, totalCharges, lateCharges, onTimeRate },
+      output: recommendation,
+    });
+    return Response.json({ recommendation, decisionId: decision.id });
   } catch (e) {
     return Response.json({ error: (e as Error).message }, { status: 500 });
   }
