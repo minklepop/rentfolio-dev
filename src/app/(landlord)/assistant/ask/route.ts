@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { assertSafeSelect, stripSensitiveColumns } from "@/lib/sqlSafety";
+import { assertSafeSelect, extractSql, stripSensitiveColumns } from "@/lib/sqlSafety";
 import { SCHEMA_DESCRIPTION } from "@/lib/schemaDescription";
 
 export async function POST(req: Request) {
@@ -29,6 +29,7 @@ Rules:
 - Output ONLY the raw SQL statement - no markdown fences, no explanation, no commentary.
 - Exactly one SELECT statement. Never write to the database.
 - Never select passwordHash or totpSecret under any circumstance, including via SELECT *.
+- When comparing charges with payments, wrap payment SUM values in COALESCE(..., 0) so charges with no payments are included.
 - Always include a LIMIT (200 max) unless the question implies a single aggregate value.`;
 
   const model = process.env.ASSISTANT_MODEL || "gemini-2.5-flash";
@@ -50,18 +51,23 @@ Rules:
   }
 
   const geminiJson = await geminiRes.json();
-  const rawSql = (geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim();
+  const rawResponse = (geminiJson?.candidates?.[0]?.content?.parts ?? [])
+    .map((part: { text?: string }) => part.text ?? "")
+    .join("")
+    .trim();
 
-  if (!rawSql) {
+  if (!rawResponse) {
     return Response.json({ error: "Gemini returned an empty response." }, { status: 500 });
   }
+
+  const rawSql = extractSql(rawResponse);
 
   let sql: string;
   try {
     sql = assertSafeSelect(rawSql);
   } catch (e) {
     return Response.json(
-      { error: `Generated query was rejected: ${(e as Error).message}`, sql: rawSql },
+      { error: `Generated query was rejected: ${(e as Error).message}`, sql: rawResponse },
       { status: 400 }
     );
   }
