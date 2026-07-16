@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { btnSecondary } from "./ui";
+import AiFeedback from "./AiFeedback";
 
 type Props = {
   applicationId: string;
@@ -12,6 +13,7 @@ export default function ApplicationScreening({ applicationId, existingAssessment
   const [assessment, setAssessment] = useState(existingAssessment);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [decisionId, setDecisionId] = useState<string | null>(null);
 
   async function run() {
     setLoading(true);
@@ -23,7 +25,7 @@ export default function ApplicationScreening({ applicationId, existingAssessment
         body: JSON.stringify({ applicationId }),
       });
       const data = await res.json();
-      if (data.assessment) setAssessment(data.assessment);
+      if (data.assessment) { setAssessment(data.assessment); setDecisionId(data.decisionId ?? null); }
       else setError(data.error ?? "Something went wrong.");
     } finally {
       setLoading(false);
@@ -36,6 +38,7 @@ export default function ApplicationScreening({ applicationId, existingAssessment
         <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-indigo-400">AI screening assessment</p>
           <p className="text-sm text-slate-800 leading-relaxed">{assessment}</p>
+          <div className="mt-3"><AiFeedback decisionId={decisionId} /></div>
         </div>
       ) : (
         <p className="text-sm text-slate-500">No AI assessment yet. Click below to generate one.</p>

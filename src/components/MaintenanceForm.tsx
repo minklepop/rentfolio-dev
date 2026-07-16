@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Field, inputCls, btnPrimary, btnSecondary } from "./ui";
 import { PRIORITIES, MAINTENANCE_CATEGORIES } from "@/lib/constants";
+import AiFeedback from "./AiFeedback";
 
 type Unit = { id: string; label: string; property: { name: string } };
 
@@ -13,7 +14,7 @@ type Props = {
   isLandlord?: boolean;
 };
 
-type Suggestion = { category: string; priority: string; reason: string };
+type Suggestion = { category: string; priority: string; reason: string; decisionId?: string };
 
 export default function MaintenanceForm({ units, action, submitLabel = "Submit request", isLandlord = false }: Props) {
   const [title, setTitle] = useState("");
@@ -100,6 +101,7 @@ export default function MaintenanceForm({ units, action, submitLabel = "Submit r
           <p className="font-medium">AI suggestion</p>
           <p className="mt-0.5 text-indigo-600">{suggestion.reason}</p>
           <p className="mt-1 text-xs text-indigo-500">Category and priority pre-filled below, override if needed.</p>
+          <div className="mt-3"><AiFeedback decisionId={suggestion.decisionId ?? null} /></div>
         </div>
       )}
 
